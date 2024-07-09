@@ -1,21 +1,5 @@
 version: '3.8'
 services:
-  nginx:
-    build:
-      context: ./frontend
-    ports:
-      - "80:80"
-    env_file:
-      - frontend/.env
-  backend:
-    build:
-      context: ./backend
-    ports:
-      - "8000:8000"
-    env_file:
-      - backend/.env
-    environment:
-      PYTHONPATH: /app
   db:
     image: postgres:13
     volumes:
@@ -26,7 +10,32 @@ services:
       POSTGRES_PASSWORD: changethis123
     ports:
       - "5432:5432"
+
   adminer:
     image: adminer
     ports:
       - "8081:8080"
+    depends_on:
+      - db
+
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - backend/.env
+    environment:
+      PYTHONPATH: /app
+    depends_on:
+      - db
+
+  nginx:
+    build:
+      context: ./frontend
+    ports:
+      - "80:80"
+    env_file:
+      - frontend/.env
+    depends_on:
+      - backend
