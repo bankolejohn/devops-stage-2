@@ -1,42 +1,34 @@
-# Use the official Ubuntu image
-FROM ubuntu:22.04
+# ./backend/Dockerfile
 
-# Set the working directory in the container
+# Use an official Python image as the base image
+FROM python:3.9
+
+# Set the working directory
 WORKDIR /app
-
-# Install dependencies and Python 3
-RUN apt-get update -y && \
-    apt-get install -y --no-install-recommends \
-    python3 \
-    python3-pip \
-    curl \
-    bash \
-    && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
-# Add Poetry to the PATH
-ENV PATH="/root/.local/bin:$PATH"
+# Add Poetry to PATH
+ENV PATH="/root/.local/bin:${PATH}"
 
-# Copy the rest of the application code into the container
-COPY . /app
+# Copy the pyproject.toml and poetry.lock files
+COPY pyproject.toml poetry.lock* /app/
 
-# Install the dependencies using Poetry
-RUN poetry install
+# Install dependencies
+RUN poetry install --no-root
 
-# Make sure the prestart script is executable
+# Copy the rest of the application code
+COPY . .
+
+# Ensure prestart.sh is executable
 RUN chmod +x ./prestart.sh
 
-# Set environment variables
-ENV PYTHONPATH=/app
+# Run the prestart script to set up the database
+RUN poetry run bash ./prestart.sh
 
-# Expose the port the app runs on
+# Expose port 8000
 EXPOSE 8000
 
-# Print Python and Poetry version for debugging
-RUN python3 --version && poetry --version
-
-# Run the prestart script and then start the Uvicorn server
-CMD ["bash", "-c", "poetry run bash ./prestart.sh && poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000"]
-
+# Start the FastAPI application using uvicorn
+CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
