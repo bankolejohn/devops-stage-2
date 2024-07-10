@@ -1,11 +1,49 @@
-version: '3.8'
+version: "3.8"
 services:
+  nginx_proxy:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: nginx_proxy_manager
+    ports:
+      - '80:80'
+      - "8090:81"
+    volumes:
+      - data:/data
+      - letsencrypt:/etc/letsencrypt
+      - ./nginx/nginx.dev.conf:/data/nginx/custom/http_top.conf
+    depends_on:
+      - frontend
+      - backend
+      - db
+      - adminer
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    env_file:
+      - backend/.env.dev
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    env_file:
+      - frontend/.env.dev
+
   db:
     image: postgres:13
     environment:
-      POSTGRES_DB: app
       POSTGRES_USER: app
       POSTGRES_PASSWORD: changethis123
+      POSTGRES_DB: app
+    ports:
+      - "5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -16,52 +54,5 @@ services:
 
 volumes:
   postgres_data:
-
-
-
-
-
-
-
-
-# version: '3.8'
-# services:
-#   db:
-#     image: postgres:13
-#     restart: always
-#     env_file:
-#       - backend/.env
-#     volumes:
-#       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
-#     ports:
-#       - "5432:5432"
-
-#   adminer:
-#     image: adminer
-#     ports:
-#       - "8081:8080"
-#     # depends_on:
-#     #   - db
-
-#   backend:
-#     build:
-#       context: ./backend
-#       # command: bash -c "poetry run bash ./prestart.sh && poetry run uvicorn app.main:app --reload --host 0.0.0 --port 8000"
-#     # ports:
-#     #   - "8000:8000"
-#     env_file:
-#       - backend/.env
-#     # environment:
-#     #   PYTHONPATH: /app
-#     depends_on:
-#       - db
-
-#   nginx:
-#     build:
-#       context: ./frontend
-#     ports:
-#       - "80:80"
-#     env_file:
-#       - frontend/.env
-#     depends_on:
-#       - backend
+  data:
+  letsencrypt:
